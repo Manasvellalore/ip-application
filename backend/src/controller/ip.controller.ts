@@ -18,23 +18,27 @@ export class IPController {
     @Query('lat') lat: string,
     @Query('lng') lng: string,
   ) {
-    console.log('API KEY:', process.env.MAPPLS_API_KEY);
+    const bargadKey =
+      process.env.GENERATED_API_KEY?.trim() ||
+      process.env.generated_api_key?.trim() ||
+      '';
     try {
+      if (!bargadKey) {
+        throw new Error('Set GENERATED_API_KEY (or generated_api_key) on the server for reverse geocode.');
+      }
+
       const { data } = await axios.post(
         `https://api.bargad.ai/api/v1/fifthservice/reverse-geo`,
         {
-          "lat": parseFloat(lat),
-          "long": parseFloat(lng)
+          lat: parseFloat(lat),
+          long: parseFloat(lng),
         },
         {
           headers: {
-            'generated-api-key': process.env.generated_api_key,
+            'generated-api-key': bargadKey,
           },
         }
       );
-      if (!process.env.generated_api_key) {
-        throw new Error('generated_api_key is missing in environment variables');
-      }
 
       // console.log('RAW RESPONSE:', JSON.stringify(data));
       const result = data.results?.[0];

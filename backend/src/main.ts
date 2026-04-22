@@ -9,7 +9,7 @@ async function bootstrap() {
 
   const allowedOrigins = (
     process.env.CORS_ORIGINS ??
-    'http://localhost:3000,http://localhost:3001,https://*.vercel.app'
+    'http://localhost:3000,http://localhost:3001,https://*.vercel.app,https://*.onrender.com'
   )
     .split(',')
     .map((origin) => origin.trim())

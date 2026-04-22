@@ -1,0 +1,14 @@
+{
+  "name": "ip-application",
+  "private": true,
+  "description": "Root scripts for Render (use when Root Directory is empty, or run locally).",
+  "scripts": {
+    "backend:build": "npm ci --prefix backend && npm run build --prefix backend",
+    "backend:start": "npm run start:prod --prefix backend",
+    "frontend:build": "npm ci --prefix frontend && npm run build --prefix frontend",
+    "frontend:start": "npm run start --prefix frontend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
