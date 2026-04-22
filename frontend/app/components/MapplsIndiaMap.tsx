@@ -23,6 +23,98 @@ export type IndiaMapMarker = {
 
 type MapplsPolylineInstance = { remove?: () => void; setMap?: (map: unknown) => void };
 
+/** Best-effort hide Mappls / MapLibre footer logo & attribution (tiles stay — we avoid broad img[src*="mappls"]). */
+function hideMapplsBrandingDom(root: HTMLElement | null) {
+  if (!root) return;
+  const stamp = (el: HTMLElement) => {
+    el.dataset.mapplsBrandingHidden = "1";
+    el.style.setProperty("display", "none", "important");
+    el.style.setProperty("visibility", "hidden", "important");
+    el.style.setProperty("opacity", "0", "important");
+    el.style.setProperty("pointer-events", "none", "important");
+    el.style.setProperty("max-width", "0", "important");
+    el.style.setProperty("max-height", "0", "important");
+    el.style.setProperty("overflow", "hidden", "important");
+  };
+
+  const selectorGroups = [
+    ".mapboxgl-ctrl-logo, .maplibregl-ctrl-logo, .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib",
+    ".mapboxgl-ctrl-attrib-button, .maplibregl-ctrl-attrib-button, .mapboxgl-ctrl-attrib-inner, .maplibregl-ctrl-attrib-inner",
+    '[class*="mappls"][class*="logo"], [class*="mapmyindia"][class*="logo"], [class*="mmi"][class*="logo"]',
+    '[class*="copyright"], [class*="Copyright"]',
+  ];
+  for (const sel of selectorGroups) {
+    try {
+      root.querySelectorAll<HTMLElement>(sel).forEach((el) => stamp(el));
+    } catch {
+      /* ignore invalid selector in older engines */
+    }
+  }
+
+  root.querySelectorAll("a").forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const href = (node.getAttribute("href") || "").toLowerCase();
+    if (
+      href.includes("mappls.com") ||
+      href.includes("mapmyindia.com") ||
+      href.includes("about.mappls") ||
+      href.includes("mappls.in")
+    ) {
+      stamp(node);
+    }
+  });
+
+  root.querySelectorAll(".mapboxgl-ctrl img, .maplibregl-ctrl img, [class*='ctrl'] img").forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const src = (node.getAttribute("src") || "").toLowerCase();
+    if (
+      (src.includes("mappls") || src.includes("mapmyindia")) &&
+      (src.includes("logo") || src.includes("brand") || src.includes("powered"))
+    ) {
+      stamp(node);
+    }
+  });
+}
+
+/** Mappls / MapLibre-style map surface — viewport APIs vary by SDK build */
+type MapViewportTarget = {
+  resize?: () => void;
+  fitBounds?: (bounds: [number, number][], options?: Record<string, unknown>) => void;
+  setCenter?: (c: [number, number]) => void;
+  setZoom?: (z: number) => void;
+  jumpTo?: (o: Record<string, unknown>) => void;
+};
+
+function applyMapViewport(map: unknown, markerList: { lat: number; lng: number }[]) {
+  if (!map || markerList.length === 0) return;
+  const m = map as MapViewportTarget;
+  m.resize?.();
+
+  if (markerList.length > 1) {
+    m.fitBounds?.(
+      markerList.map((mk) => [mk.lng, mk.lat] as [number, number]),
+      { padding: 100 }
+    );
+    return;
+  }
+
+  const { lat, lng } = markerList[0];
+  const center: [number, number] = [lng, lat];
+  const zoom = 11;
+
+  try {
+    m.jumpTo?.({ center, zoom });
+  } catch {
+    /* ignore */
+  }
+  try {
+    m.setCenter?.(center);
+    m.setZoom?.(zoom);
+  } catch {
+    /* ignore */
+  }
+}
+
 function getMapplsPolylineCtor():
   | (new (options: Record<string, unknown>) => MapplsPolylineInstance)
   | null {
@@ -114,6 +206,8 @@ export default function MapplsIndiaMap({
       mapRef.current = new window.mappls.Map(containerId, {
         center: [centerLng, centerLat],
         zoom: 10,
+        /** Hide default Mappls / MapLibre attribution & logo UI (DOM pass + CSS cover leftovers). */
+        attributionControl: false,
       });
     }
 
@@ -158,13 +252,6 @@ export default function MapplsIndiaMap({
         markerRefs.current.push(marker);
       });
 
-      if (markerList.length > 1) {
-        mapRef.current?.fitBounds?.(
-          markerList.map((m) => [m.lng, m.lat] as [number, number]),
-          { padding: 100 }
-        );
-      }
-
       if (drawPolyline && path) {
         const PolyCtor = getMapplsPolylineCtor();
         if (PolyCtor) {
@@ -199,16 +286,38 @@ export default function MapplsIndiaMap({
           });
         }
       }
+
+      applyMapViewport(mapRef.current, markerList);
+
+      const mapEl = mapContainerRef.current ?? document.getElementById(containerId);
+      hideMapplsBrandingDom(mapEl);
     };
 
     mapRef.current?.addListener?.("load", placeMarkers);
-    const fallback = setTimeout(placeMarkers, 650);
+    const raf = requestAnimationFrame(placeMarkers);
+    const t1 = window.setTimeout(placeMarkers, 80);
+    const t2 = window.setTimeout(placeMarkers, 400);
+    const t3 = window.setTimeout(placeMarkers, 1200);
 
-    return () => clearTimeout(fallback);
+    const mapEl = mapContainerRef.current;
+    let mo: MutationObserver | null = null;
+    if (mapEl) {
+      hideMapplsBrandingDom(mapEl);
+      mo = new MutationObserver(() => hideMapplsBrandingDom(mapEl));
+      mo.observe(mapEl, { childList: true, subtree: true });
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      mo?.disconnect();
+    };
   }, [mapScriptReady, containerId, markers, polylinePath]);
 
   return (
-    <div className="relative">
+    <div className="mappls-india-map-wrap relative">
       <div id={containerId} ref={mapContainerRef} className={className} />
     </div>
   );

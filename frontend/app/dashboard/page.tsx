@@ -424,7 +424,7 @@ export default function Dashboard() {
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <h3 className="text-green-400 text-xs shrink-0">India Map</h3>
               {driftLabel ? (
-                <span className="inline-flex w-fit shrink-0 rounded-full border border-red-400/60 bg-red-600/95 px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-red-900/40 ring-2 ring-red-500/30 sm:mt-0 sm:max-w-[min(100%,16rem)] sm:text-right">
+                <span className="inline-flex w-fit shrink-0 rounded-full border border-[#24aa4d]/70 bg-[#1a6b32]/95 px-3 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-950/50 ring-2 ring-[#24aa4d]/40 sm:mt-0 sm:max-w-[min(100%,16rem)] sm:text-right">
                   Distance: {driftLabel}
                 </span>
               ) : null}

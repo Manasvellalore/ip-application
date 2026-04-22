@@ -45,6 +45,13 @@ function IpCheckContent() {
   const mapKey = process.env.NEXT_PUBLIC_MAP_KEY?.trim();
 
   useEffect(() => {
+    if (typeof window === "undefined" || !mapKey) return;
+    if (window.mappls) {
+      setMapScriptLoaded(true);
+    }
+  }, [mapKey]);
+
+  useEffect(() => {
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (cancelled) return;
@@ -165,26 +172,65 @@ function IpCheckContent() {
       {mapKey ? (
         <Script
           src={`https://apis.mappls.com/advancedmaps/api/${mapKey}/map_sdk?v=3.0`}
-          strategy="lazyOnload"
+          strategy="afterInteractive"
           onLoad={() => setMapScriptLoaded(true)}
         />
       ) : null}
 
       <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-8 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#24aa4d]">IP lookup</p>
             <h1 className="mt-1 font-mono text-lg text-white sm:text-xl">{ipParam || "—"}</h1>
+
+            {ipParam && mapKey ? (
+              <div className="mt-6 space-y-3">
+                {loading ? (
+                  <div className="flex h-80 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-sm text-gray-400">
+                    Loading…
+                  </div>
+                ) : ipMapCoords ? (
+                  <>
+                    <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs leading-relaxed text-gray-200">
+                      <p>
+                        <span className="text-gray-500">Coordinates: </span>
+                        {ipMapCoords.lat.toFixed(6)}, {ipMapCoords.lng.toFixed(6)}
+                      </p>
+                      <p className="mt-1">
+                        <span className="text-gray-500">Address: </span>
+                        {ipMapAddressLoading && !ipMapAddressLine
+                          ? "Resolving address…"
+                          : ipMapAddressLine ||
+                            "Could not resolve address (check NEXT_PUBLIC_GENERATED_API_KEY)."}
+                      </p>
+                    </div>
+                    <MapplsIndiaMap
+                      key={`${ipParam}-${ipMapCoords.lat}-${ipMapCoords.lng}`}
+                      containerId="mappls-ip-check-map"
+                      mapScriptReady={mapScriptLoaded}
+                      markers={ipMapMarkers}
+                    />
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    No coordinates returned for this IP from ip details or ip_adv.
+                  </p>
+                )}
+              </div>
+            ) : ipParam && !mapKey ? (
+              <p className="mt-6 text-xs text-gray-500">
+                Set NEXT_PUBLIC_MAP_KEY to show the map (same as dashboard).
+              </p>
+            ) : null}
           </div>
           <Link
             href="/"
-            className="rounded-xl border border-[#24aa4d]/40 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#5edd7c] hover:bg-[#24aa4d]/10"
+            className="shrink-0 rounded-xl border border-[#24aa4d]/40 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#5edd7c] hover:bg-[#24aa4d]/10"
           >
             Back
           </Link>
         </div>
 
-        {loading && <p className="text-sm text-gray-400">Loading…</p>}
         {!loading && error && !partitions && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</p>
         )}
@@ -207,45 +253,6 @@ function IpCheckContent() {
                 {informationJson}
               </pre>
             </div>
-          </div>
-        )}
-
-        {!loading && ipParam && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-green-400">
-              IP location (India map)
-            </h2>
-            {!mapKey ? (
-              <p className="text-xs text-gray-500">
-                Set NEXT_PUBLIC_MAP_KEY to show the map (same as dashboard).
-              </p>
-            ) : ipMapCoords ? (
-              <div className="space-y-3">
-                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs leading-relaxed text-gray-200">
-                  <p>
-                    <span className="text-gray-500">Coordinates: </span>
-                    {ipMapCoords.lat.toFixed(6)}, {ipMapCoords.lng.toFixed(6)}
-                  </p>
-                  <p className="mt-1">
-                    <span className="text-gray-500">Address: </span>
-                    {ipMapAddressLoading && !ipMapAddressLine
-                      ? "Resolving address…"
-                      : ipMapAddressLine ||
-                        "Could not resolve address (check NEXT_PUBLIC_GENERATED_API_KEY)."}
-                  </p>
-                </div>
-                <MapplsIndiaMap
-                  key={`${ipParam}-${ipMapCoords.lat}-${ipMapCoords.lng}`}
-                  containerId="mappls-ip-check-map"
-                  mapScriptReady={mapScriptLoaded}
-                  markers={ipMapMarkers}
-                />
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500">
-                No coordinates returned for this IP from ip details or ip_adv.
-              </p>
-            )}
           </div>
         )}
       </div>
