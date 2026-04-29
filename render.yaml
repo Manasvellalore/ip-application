@@ -1,0 +1,40 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# If deploy shows "No open ports" + exit 127: your START command must run the
+# server (backend: `npm run backend:start` or `npm run start:prod` inside backend),
+# NOT `npm ci && npm run build`. Build and start are separate steps.
+#
+# Do not set the build command to plain `yarn` unless you commit a yarn.lock and use yarn consistently.
+
+services:
+  - type: web
+    name: ip-application-api
+    runtime: node
+    buildCommand: npm run backend:build
+    startCommand: npm run backend:start
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GENERATED_API_KEY
+        sync: false
+
+  - type: web
+    name: ip-application-web
+    runtime: node
+    buildCommand: npm run frontend:build
+    startCommand: npm run frontend:start
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
+      - key: BACKEND_URL
+        sync: false
+      - key: NEXT_PUBLIC_BACKEND_URL
+        sync: false
+      - key: NEXT_PUBLIC_MAP_KEY
+        sync: false
+      - key: NEXT_PUBLIC_GENERATED_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_IP_ADV_GENERATED_API_KEY
+        sync: false

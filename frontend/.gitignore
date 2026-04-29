@@ -22,7 +22,6 @@
 
 # misc
 .DS_Store
-Thumbs.db
 *.pem
 
 # debug
@@ -33,7 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.example
 
 # vercel
 .vercel
@@ -41,9 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# IDE
-.idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
